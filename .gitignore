@@ -1,0 +1,6 @@
+
+*.cfg
+*.ipynb
+STORM_database_dev.py
+*.idea
+__pycache__/doit_STORM_DatabaseFunctionality.cpython-36.pyc
