@@ -56,31 +56,27 @@ def main():
     agol_password = parser["AGOL"]["PASSWORD"]
     agol_root_url = parser["AGOL"]["ROOT_URL"]
     agol_username = parser["AGOL"]["USER_NAME"]
-    feature_type = "Feature Service"
-    owner = parser["AGOL"]["TABLE_OWNER"]
-    title = "STORM_Truck_Count_Table"
+    agol_layer_id = parser["AGOL"]["LAYER_ID"]
 
     # Need an agol connection session thingy
     gis = GIS(url=agol_root_url, username=agol_username, password=agol_password)
 
-    # Need to find and get a reference to the hosted table
-    query_for_truck_count_table_layer = f"title: {title} AND owner: {owner} AND type: {feature_type}"
-    truck_query_layer_results = gis.content.search(query=query_for_truck_count_table_layer)
+    # Need to the hosted feature layer based on id. Hosted table style previously used but WebApp couldn't consume it.
+    truck_feature_layer_agol = gis.content.get(agol_layer_id)
+    truck_layers_list = truck_feature_layer_agol.layers
+    truck_feature_layer = truck_layers_list[0]
 
-    # Need to make sure there is only one item. If some other item with same name gets created then bail.
-    if len(truck_query_layer_results) > 1:
-        print(f"Woah Nelly, more than one table was found in the search using... '{query_for_truck_count_table_layer}'")
+    # Need to get feature set for layer, isolate record, and change attribute value. Used ESRI dev docs for guidance
+    truck_features_feature_set = truck_feature_layer.query()
+    truck_features_list = truck_features_feature_set.features
+    if len(truck_features_list) != 1:
+        print(f"WARNING: More than one feature in the truck count feature layer. Expecting length == 1\n{truck_features_list}")
         exit()
-
-    # Need to isolate tables from spatial layers and extract the value of interest. Used ESRI dev docs for guidance here
-    truck_tables = truck_query_layer_results[0].tables
-    truck_count_feature_set = truck_tables[0].query()
-    truck_count_table = truck_tables[0]
-    truck_features_list = truck_count_feature_set.features
-    truck_features_list[0].attributes["TRUCK_COUNT"] = truck_count
+    first_record = truck_features_list[0]
+    first_record.attributes["TRUCK_COUNT"] = truck_count
 
     # Need to change the existing count value to the newest value pulled from the database
-    update_result = truck_count_table.edit_features(updates=[truck_features_list[0]])
+    update_result = truck_feature_layer.edit_features(updates=[truck_features_list[0]])
 
     # Print out some info for Visual Cron job documentation
     print(f"Truck Count Updated in AGOL: {update_result}")
