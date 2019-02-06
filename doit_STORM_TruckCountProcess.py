@@ -21,6 +21,7 @@ def main():
     from arcgis.gis import GIS
     import configparser
     import pyodbc
+    print(f"\nImports complete. Time passed since start = {datetime.now() - start_time}")
 
     # GET CREDENTIAL TYPE ITEMS
     parser = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
@@ -37,6 +38,8 @@ def main():
     database_connection_string = f"DSN={database_name};UID={database_user};PWD={database_password}"
     sql_query_for_count = parser["DATABASE"]["TRUCK_COUNT_SQL"]
 
+    print(f"Database variable parsing complete. Time passed since start = {datetime.now() - start_time}")
+
     # Need a connection to query table and get truck count
     with pyodbc.connect(database_connection_string) as connection:
         curs = connection.cursor()
@@ -49,6 +52,8 @@ def main():
         results = curs.fetchall()   # Returns list with a single row tuple with a single value
     truck_count = results[0][0]
 
+    print(f"Database part complete. Time passed since start = {datetime.now() - start_time}")
+
     # ____________________
     # GIS Portion of the Process
     # ____________________
@@ -58,8 +63,12 @@ def main():
     agol_username = parser["AGOL"]["USER_NAME"]
     agol_layer_id = parser["AGOL"]["LAYER_ID"]
 
+    print(f"AGOL variable parsing complete. Time passed since start = {datetime.now() - start_time}")
+
     # Need an agol connection session thingy
     gis = GIS(url=agol_root_url, username=agol_username, password=agol_password)
+
+    print(f"AGOL connection established. Time passed since start = {datetime.now() - start_time}")
 
     # Need to the hosted feature layer based on id. Hosted table style previously used but WebApp couldn't consume it.
     truck_feature_layer_agol = gis.content.get(agol_layer_id)
