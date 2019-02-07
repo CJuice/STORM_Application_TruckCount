@@ -1,13 +1,21 @@
 """
-Query a database for the count of snow plow trucks active in Maryland and then update a hosted table in ArcGIS Online.
-Queries the CHART database for active snow plow trucks. A sql query gets a count of records in the active trucks table.
-A connection with ArcGIS Online is established and a hosted feature layer (table) is accessed. The table has no spatial
-data, just a truck count value. This truck count value is updated using the value pulled from the CHART database. The
-hosted table is intended to feed a widget in the STORM web application map and feed the truck count stat shown on the
-main map page.
+Query a database for the count of trucks active in Maryland and then update a hosted feature service in ArcGIS Online.
+Use a SQL query on the CHART database to get a count of records in the active trucks table. A connection with ArcGIS
+Online is established and a hosted feature layer is accessed. The feature layer is a single point geometry centered
+on the Maryland State House and has no meaning. A hosted table was not consumable by the WebApp widget at the time
+of design so we had to make a hosted feature layer with a single geometry record. The truck count value is attached
+to the point. The truck count value is updated using the value pulled from the CHART database. The hosted feature
+layer feeds a widget in the STORM web application map and the truck count is shown on the main map page.
 Author: CJuice
 Created: 20190205
 Revisions:
+20190506 - Redesigned to use a hosted feature layer instead of a hosted feature table as the table is not
+consumable by the WebApp widget used to display the truck count. Also added timing print outs to see what portions were
+taking the longest with the intention of trying to speed up the process. The imports takes nearly half of the total
+run time. Researched options but didn't implement socket server setup we read about. Instead, staggered Visual Cron
+task to start 5 seconds before CHART AVL Ingestion job. That job takes about 2.5 seconds while the imports take about
+8 to 9 seconds. We kick off this process and while the imports are running the ingestion job runs and finishes. We
+shaved off a few seconds this way.
 
 """
 
@@ -79,7 +87,7 @@ def main():
     truck_features_feature_set = truck_feature_layer.query()
     truck_features_list = truck_features_feature_set.features
     if len(truck_features_list) != 1:
-        print(f"WARNING: More than one feature in the truck count feature layer. Expecting length == 1\n{truck_features_list}")
+        print(f"WARNING: More than one feature in the truck count feature layer. Expected 1\n{truck_features_list}")
         exit()
     first_record = truck_features_list[0]
     first_record.attributes["TRUCK_COUNT"] = truck_count
@@ -92,8 +100,8 @@ def main():
     print(f"Truck Count Value: {truck_count}")
     print(f"Process run time: {datetime.now() - start_time}")
 
-    # NOTE: Accidentally created a second record and had to delete it
-    # truck_count_table.edit_features(deletes='2')  # the number 2 was the object id of the 'feature' in the table
+    # NOTE: Accidentally created a second record and had to delete it. Could need to use again in future so keeping it.
+    # truck_feature_layer.edit_features(deletes='2')  # the #2 was the obj id of the extra 'feature'
 
 
 if __name__ == "__main__":
