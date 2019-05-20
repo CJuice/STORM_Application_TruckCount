@@ -16,8 +16,7 @@ run time. Researched options but didn't implement socket server setup we read ab
 task to start 5 seconds before CHART AVL Ingestion job. That job takes about 2.5 seconds while the imports take about
 8 to 9 seconds. We kick off this process and while the imports are running the ingestion job runs and finishes. We
 shaved off a few seconds this way.
-20190520 - Added exception handling for periodic Runtime Errors in call to
-truck_feature_layer.edit_features(updates=[truck_features_list[0]])
+20190520 - Added exception handling for periodic Runtime Errors during agol interactions
 
 """
 
@@ -86,19 +85,19 @@ def main():
     truck_feature_layer = truck_layers_list[0]
 
     # Need to get feature set for layer, isolate record, and change attribute value. Used ESRI dev docs for guidance
-    truck_features_feature_set = truck_feature_layer.query()
-    truck_features_list = truck_features_feature_set.features
-    if len(truck_features_list) != 1:
-        print(f"WARNING: More than one feature in the truck count feature layer. Expected 1\n{truck_features_list}")
-        exit()
-    first_record = truck_features_list[0]
-    first_record.attributes["TRUCK_COUNT"] = truck_count
-
-    # Need to change the existing count value to the newest value pulled from the database
     try:
+        truck_features_feature_set = truck_feature_layer.query()
+        truck_features_list = truck_features_feature_set.features
+        if len(truck_features_list) != 1:
+            print(f"WARNING: More than one feature in the truck count feature layer. Expected 1\n{truck_features_list}")
+            exit()
+        first_record = truck_features_list[0]
+        first_record.attributes["TRUCK_COUNT"] = truck_count
+
+        # Need to change the existing count value to the newest value pulled from the database
         update_result = truck_feature_layer.edit_features(updates=[truck_features_list[0]])
     except RuntimeError as rte:
-        print(f"Runtime Error raised during call to truck_feature_layer.edit_features(updates=[truck_features_list[0]]): {rte}")
+        print(f"Runtime Error raised: {rte}")
         exit()
 
     # Print out some info for Visual Cron job documentation
