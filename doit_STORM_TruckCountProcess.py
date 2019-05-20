@@ -16,6 +16,8 @@ run time. Researched options but didn't implement socket server setup we read ab
 task to start 5 seconds before CHART AVL Ingestion job. That job takes about 2.5 seconds while the imports take about
 8 to 9 seconds. We kick off this process and while the imports are running the ingestion job runs and finishes. We
 shaved off a few seconds this way.
+20190520 - Added exception handling for periodic Runtime Errors in call to
+truck_feature_layer.edit_features(updates=[truck_features_list[0]])
 
 """
 
@@ -93,7 +95,11 @@ def main():
     first_record.attributes["TRUCK_COUNT"] = truck_count
 
     # Need to change the existing count value to the newest value pulled from the database
-    update_result = truck_feature_layer.edit_features(updates=[truck_features_list[0]])
+    try:
+        update_result = truck_feature_layer.edit_features(updates=[truck_features_list[0]])
+    except RuntimeError as rte:
+        print(f"Runtime Error raised during call to truck_feature_layer.edit_features(updates=[truck_features_list[0]]): {rte}")
+        exit()
 
     # Print out some info for Visual Cron job documentation
     print(f"Truck Count Updated in AGOL: {update_result}")
